@@ -6,10 +6,11 @@ import com.telran.org.urlshortener.entity.Subscription;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SubscriptionDtoMapper implements Convertor<Subscription, SubscriptionCreateDTO, SubscriptionDTO> {
+public class SubscriptionDtoMapper implements Converter<Subscription, SubscriptionCreateDTO, SubscriptionDTO> {
     @Override
     public SubscriptionDTO entityToDto(Subscription subscription) {
         return SubscriptionDTO.builder()
+                .id(subscription.getId())
                 .pathPrefix(subscription.getPathPrefix())
                 .creationDate(subscription.getCreationDate())
                 .expirationDate(subscription.getExpirationDate())

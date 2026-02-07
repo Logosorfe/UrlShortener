@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UrlBindingDTO {
+    private Long id;
     private String originalUrl;
     private String shortUrl;
     private Long count;

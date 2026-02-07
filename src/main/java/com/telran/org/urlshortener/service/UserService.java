@@ -1,20 +1,22 @@
 package com.telran.org.urlshortener.service;
 
+import com.telran.org.urlshortener.dto.UserCreateDTO;
+import com.telran.org.urlshortener.dto.UserDTO;
 import com.telran.org.urlshortener.entity.User;
 import com.telran.org.urlshortener.model.RoleType;
 
 import java.util.List;
 
 public interface UserService {
-    User create(User user);
+    UserDTO create(UserCreateDTO dto);
 
-    List<User> findAll();
+    List<UserDTO> findAll();
 
     User findById(long id);
 
-    User update(long id, RoleType newRole);
+    UserDTO update(long id, RoleType newRole);
 
     void remove(long id);
 
-    User findByEmail(String email);
+    UserDTO findByEmail(String email);
 }

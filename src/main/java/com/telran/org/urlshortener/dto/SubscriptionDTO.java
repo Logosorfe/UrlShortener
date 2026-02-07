@@ -13,6 +13,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SubscriptionDTO {
+    private Long id;
     private String pathPrefix;
     private LocalDate creationDate;
     private LocalDate expirationDate;

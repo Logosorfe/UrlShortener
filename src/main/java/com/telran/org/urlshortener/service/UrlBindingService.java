@@ -1,17 +1,18 @@
 package com.telran.org.urlshortener.service;
 
-import com.telran.org.urlshortener.entity.UrlBinding;
+import com.telran.org.urlshortener.dto.UrlBindingCreateDTO;
+import com.telran.org.urlshortener.dto.UrlBindingDTO;
 
 import java.util.List;
 
 public interface UrlBindingService {
-    UrlBinding create(UrlBinding urlBinding, String pathPrefix);
+    UrlBindingDTO create(UrlBindingCreateDTO dto, String pathPrefix);
 
-    List<UrlBinding> findAllByUserId(long userId);
+    List<UrlBindingDTO> findAllByUserId(long userId);
 
-    UrlBinding find(String uId);
+    UrlBindingDTO find(String uId);
 
-    UrlBinding reset(long id);
+    UrlBindingDTO reset(long id);
 
     void remove(long id);
 }

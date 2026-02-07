@@ -1,13 +1,13 @@
 package com.telran.org.urlshortener.service;
 
-import com.telran.org.urlshortener.entity.UrlBinding;
+import com.telran.org.urlshortener.dto.UrlBindingDTO;
 
 import java.util.List;
 
 public interface StatisticsService {
-    Long requestsNumberByUser();
+    long requestsNumberByUserId(long userId);
 
-    Long requestsNumberByUrlBinding(Long urlBindingId);
+    long requestsNumberByUrlBinding(long urlBindingId);
 
-    List<UrlBinding> topTenRequests();
+    List<UrlBindingDTO> topTenRequests();
 }

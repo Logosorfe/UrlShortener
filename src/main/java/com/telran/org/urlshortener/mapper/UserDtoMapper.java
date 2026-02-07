@@ -6,10 +6,11 @@ import com.telran.org.urlshortener.entity.User;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UserDtoMapper implements Convertor<User, UserCreateDTO, UserDTO> {
+public class UserDtoMapper implements Converter<User, UserCreateDTO, UserDTO> {
     @Override
     public UserDTO entityToDto(User user) {
         return UserDTO.builder()
+                .id(user.getId())
                 .email(user.getEmail())
                 .role(user.getRole())
                 .build();
