@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.beans.factory.annotation.Value;
 
 @Entity
 @Table(name = "url_bindings")
@@ -20,14 +21,15 @@ public class UrlBinding {
 
     private String originalUrl;
 
-    private final String baseUrl = "localhost:8080";
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     private String uId;
 
-    private Long count;
+    private Long count = 0L;
 
-    @ManyToOne(cascade = CascadeType.PERSIST)
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @ManyToOne
+    @JoinColumn(name = "user_id")
     @JsonBackReference
     @ToString.Exclude
     private User user;

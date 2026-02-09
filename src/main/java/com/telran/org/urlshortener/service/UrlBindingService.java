@@ -14,5 +14,5 @@ public interface UrlBindingService {
 
     UrlBindingDTO reset(long id);
 
-    void remove(long id);
+    void delete(long id);
 }

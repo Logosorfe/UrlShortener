@@ -30,8 +30,8 @@ public class Subscription {
     @Enumerated(EnumType.STRING)
     private StatusState status = StatusState.UNPAID;
 
-    @ManyToOne(cascade = CascadeType.PERSIST)
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @ManyToOne
+    @JoinColumn(name = "user_id")
     @JsonBackReference
     @ToString.Exclude
     private User user;

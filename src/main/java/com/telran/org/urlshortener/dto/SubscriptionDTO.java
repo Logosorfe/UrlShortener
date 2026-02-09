@@ -14,8 +14,12 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class SubscriptionDTO {
     private Long id;
+
     private String pathPrefix;
+
     private LocalDate creationDate;
+
     private LocalDate expirationDate;
+
     private StatusState status;
 }

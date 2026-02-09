@@ -21,6 +21,7 @@ public class User {
 
     private String email;
 
+    @ToString.Exclude
     private String password;
 
     @Enumerated(EnumType.STRING)

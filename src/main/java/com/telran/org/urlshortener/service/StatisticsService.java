@@ -5,7 +5,7 @@ import com.telran.org.urlshortener.dto.UrlBindingDTO;
 import java.util.List;
 
 public interface StatisticsService {
-    long requestsNumberByUserId(long userId);
+    Long requestsNumberByUser(long userId);
 
     long requestsNumberByUrlBinding(long urlBindingId);
 

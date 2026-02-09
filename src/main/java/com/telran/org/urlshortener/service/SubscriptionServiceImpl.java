@@ -10,8 +10,9 @@ import com.telran.org.urlshortener.exception.UserNotFoundException;
 import com.telran.org.urlshortener.mapper.Converter;
 import com.telran.org.urlshortener.model.StatusState;
 import com.telran.org.urlshortener.repository.SubscriptionJpaRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,26 +20,23 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
+@RequiredArgsConstructor
 public class SubscriptionServiceImpl implements SubscriptionService {
-    private SubscriptionJpaRepository repository;
+    private final SubscriptionJpaRepository repository;
 
-    private UserService service;
-
-    private Converter<Subscription, SubscriptionCreateDTO, SubscriptionDTO> converter;
+    private final Converter<Subscription, SubscriptionCreateDTO, SubscriptionDTO> converter;
 
     @Override
     public SubscriptionDTO create(SubscriptionCreateDTO dto) {
-        User currentUser = service.findById(0);
-        Optional<Subscription> found = repository.findAll().stream()
-                .filter(s -> s.getPathPrefix().equals(dto.getPathPrefix())).findFirst();
+        User currentUser = new User();
+        Optional<Subscription> found = repository.findByPathPrefix(dto.getPathPrefix());
         if (found.isPresent()) {
             if (found.get().getExpirationDate() == null
-                    || found.get().getExpirationDate().isBefore(LocalDate.now().plusDays(1))) {
+                    || !found.get().getExpirationDate().isAfter(LocalDate.now())) {
                 found.get().setCreationDate(LocalDate.now());
                 found.get().setStatus(StatusState.UNPAID);
                 found.get().setUser(currentUser);
-                return converter.entityToDto(found.get());
+                return converter.entityToDto(repository.save(found.get()));
             }
             throw new PathPrefixNotAvailableException("This pathPrefix \"" + dto.getPathPrefix()
                     + "\" is not available till " + found.get().getExpirationDate());
@@ -51,8 +49,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public List<SubscriptionDTO> findByUserId(long userId) {
-        return service.findById(userId).getSubscriptions().stream()
-                .map(s -> converter.entityToDto(s)).collect(Collectors.toList());
+        return repository.findByUserId(userId).stream()
+                .map(converter::entityToDto).collect(Collectors.toList());
     }
 
     @Override
@@ -62,15 +60,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public void remove(long id) {
-        repository.deleteById(id);
+    public void delete(long id) {
+        if (repository.existsById(id)) repository.deleteById(id);
+        else throw new IdNotFoundException("Subscription with id " + id + " is not found.");
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     public void makePayment(long id, long userId) {
         Subscription subscriptionFromDB = repository.findById(id)
                 .orElseThrow(() -> new IdNotFoundException("Subscription with id " + id + " is not found."));
-        if (subscriptionFromDB.getUser().getId() != userId) {
+        if (!subscriptionFromDB.getUser().getId().equals(userId)) {
             throw new UserNotFoundException("Subscription with id " + id + " does not belong to User with id "
                     + userId + ". User needs to try creating the same subscription.");
         }
@@ -81,5 +81,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             subscriptionFromDB.setExpirationDate(subscriptionFromDB.getExpirationDate().plusMonths(1));
         }
         subscriptionFromDB.setStatus(StatusState.PAID);
+        repository.save(subscriptionFromDB);
     }
 }

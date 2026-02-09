@@ -89,16 +89,16 @@
             <optional>true</optional>
         </dependency>
         <!--  Thymeleaf  -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-starter-thymeleaf</artifactId>-->
+<!--        </dependency>-->
         <!--  OpenFeign  -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
-            <version>4.1.1</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.cloud</groupId>-->
+<!--            <artifactId>spring-cloud-starter-openfeign</artifactId>-->
+<!--            <version>4.1.1</version>-->
+<!--        </dependency>-->
         <!--  Date classes correct work in JSON  -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
