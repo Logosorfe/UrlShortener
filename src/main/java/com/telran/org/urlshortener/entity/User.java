@@ -25,7 +25,7 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    private RoleType role = RoleType.USER;
+    private RoleType role = RoleType.ROLE_USER;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonManagedReference

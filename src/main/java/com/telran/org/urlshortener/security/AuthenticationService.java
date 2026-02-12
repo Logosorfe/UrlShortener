@@ -4,4 +4,3 @@ public interface AuthenticationService {
 
     JwtAuthenticationResponse authenticate(SignInRequest request);
 }
-

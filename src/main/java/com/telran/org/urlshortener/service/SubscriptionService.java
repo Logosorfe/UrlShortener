@@ -14,5 +14,5 @@ public interface SubscriptionService {
 
     void delete(long id);
 
-    void makePayment(long id, long userId);
+    void makePayment(long id);
 }

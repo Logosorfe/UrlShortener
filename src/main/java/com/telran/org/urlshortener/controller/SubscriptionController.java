@@ -41,10 +41,9 @@ public class SubscriptionController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/pay")
-    public ResponseEntity<Void> paySubscription(@PathVariable @Positive long id,
-                                                @RequestParam @Positive long userId) {
-        service.makePayment(id, userId);
-        return ResponseEntity.noContent().build();
+    @PatchMapping("/{id}")
+    public ResponseEntity<String> paySubscription(@PathVariable @Positive long id) {
+        service.makePayment(id);
+        return ResponseEntity.accepted().body("Payment process started");
     }
 }
