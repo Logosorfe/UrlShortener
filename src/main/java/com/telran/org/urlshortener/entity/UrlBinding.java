@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.springframework.beans.factory.annotation.Value;
 
 @Entity
 @Table(name = "url_bindings")
@@ -20,9 +19,6 @@ public class UrlBinding {
     private Long id;
 
     private String originalUrl;
-
-    @Value("${app.base-url}")
-    private String baseUrl;
 
     private String uId;
 

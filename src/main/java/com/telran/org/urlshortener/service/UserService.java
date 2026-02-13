@@ -10,7 +10,7 @@ import java.util.List;
 public interface UserService {
     UserDTO create(UserCreateDTO dto);
 
-    List<UserDTO> findUsers();
+    List<UserDTO> findAll();
 
     UserDTO findById(long id);
 

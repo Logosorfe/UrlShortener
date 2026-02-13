@@ -8,7 +8,7 @@ import java.util.List;
 public interface SubscriptionService {
     SubscriptionDTO create(SubscriptionCreateDTO dto);
 
-    List<SubscriptionDTO> findByUserId(long userId);
+    List<SubscriptionDTO> findAllByUserId(long userId);
 
     SubscriptionDTO findById(long id);
 

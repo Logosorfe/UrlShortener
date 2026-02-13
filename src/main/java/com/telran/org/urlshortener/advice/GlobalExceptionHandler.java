@@ -1,16 +1,13 @@
 package com.telran.org.urlshortener.advice;
 
 import com.telran.org.urlshortener.dto.ErrorResponse;
-import com.telran.org.urlshortener.exception.EmailNotUniqueException;
-import com.telran.org.urlshortener.exception.IdNotFoundException;
-import com.telran.org.urlshortener.exception.PathPrefixNotAvailableException;
-import com.telran.org.urlshortener.exception.UserNotFoundException;
+import com.telran.org.urlshortener.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -19,51 +16,72 @@ import java.time.Instant;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
+    private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest req) {
+        return ResponseEntity.status(status).body(
+                new ErrorResponse(
+                        Instant.now(),
+                        status.value(),
+                        status.getReasonPhrase(),
+                        message,
+                        req != null ? req.getRequestURI() : null
+                )
+        );
+    }
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
+    // --- 404 NOT FOUND ---
     @ExceptionHandler({IdNotFoundException.class, UserNotFoundException.class})
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex, HttpServletRequest req) {
-        logger.info("Not found: {} for path {}", ex.getMessage(), req.getRequestURI());
-        return buildResponse(ex.getMessage(), HttpStatus.NOT_FOUND, req.getRequestURI());
+        log.info("Not found: {}", ex.getMessage());
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), req);
     }
 
+    // --- 409 CONFLICT ---
     @ExceptionHandler({EmailNotUniqueException.class, PathPrefixNotAvailableException.class})
     public ResponseEntity<ErrorResponse> handleConflict(RuntimeException ex, HttpServletRequest req) {
-        logger.warn("Conflict: {} for path {}", ex.getMessage(), req.getRequestURI());
-        return buildResponse(ex.getMessage(), HttpStatus.CONFLICT, req.getRequestURI());
+        log.warn("Conflict: {}", ex.getMessage());
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req);
     }
 
+    // --- 403 FORBIDDEN ---
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest req) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return build(HttpStatus.FORBIDDEN, "You do not have permission to access this resource", req);
+    }
+
+    // --- 401 UNAUTHORIZED ---
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ErrorResponse> handleSecurity(SecurityException ex, HttpServletRequest req) {
+        log.warn("Authentication error: {}", ex.getMessage());
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), req);
+    }
+
+    // --- 400 BAD REQUEST (validation: @Valid) ---
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex,
-                                                          HttpServletRequest req) {
-        String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest req) {
+        String msg = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .collect(Collectors.joining("; "));
-        return buildResponse(message, HttpStatus.BAD_REQUEST, req.getRequestURI());
+        log.info("Validation failed: {}", msg);
+        return build(HttpStatus.BAD_REQUEST, msg, req);
     }
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleBadRequest(HttpMessageNotReadableException ex,
-                                                          HttpServletRequest req) {
-        return buildResponse("Malformed JSON request", HttpStatus.BAD_REQUEST, req.getRequestURI());
+    // --- 400 BAD REQUEST (validation: @RequestParam, @PathVariable) ---
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex, HttpServletRequest req) {
+        String msg = ex.getConstraintViolations().stream()
+                .map(v -> v.getMessage())
+                .collect(Collectors.joining("; "));
+        log.info("Constraint violation: {}", msg);
+        return build(HttpStatus.BAD_REQUEST, msg, req);
     }
 
+    // --- 500 INTERNAL SERVER ERROR ---
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest req) {
-        logger.error("Unhandled exception for path {}: {}", req.getRequestURI(), ex.getMessage(), ex);
-        return buildResponse("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR, req.getRequestURI());
-    }
-
-    private ResponseEntity<ErrorResponse> buildResponse(String message, HttpStatus status, String path) {
-        ErrorResponse body = new ErrorResponse(
-                Instant.now(),
-                status.value(),
-                status.getReasonPhrase(),
-                message,
-                path
-        );
-        return ResponseEntity.status(status).body(body);
+    public ResponseEntity<ErrorResponse> handleAll(Exception ex, HttpServletRequest req) {
+        log.error("Unhandled exception", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error", req);
     }
 }
