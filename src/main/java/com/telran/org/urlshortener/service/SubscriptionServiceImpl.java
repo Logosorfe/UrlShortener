@@ -6,7 +6,7 @@ import com.telran.org.urlshortener.dto.SubscriptionDTO;
 import com.telran.org.urlshortener.entity.Subscription;
 import com.telran.org.urlshortener.entity.User;
 import com.telran.org.urlshortener.exception.IdNotFoundException;
-import com.telran.org.urlshortener.exception.PathPrefixNotAvailableException;
+import com.telran.org.urlshortener.exception.PathPrefixAvailabilityException;
 import com.telran.org.urlshortener.mapper.Converter;
 import com.telran.org.urlshortener.model.RoleType;
 import com.telran.org.urlshortener.model.StatusState;
@@ -41,32 +41,39 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @PreAuthorize("hasRole('USER')")
     @Transactional
     public SubscriptionDTO create(SubscriptionCreateDTO dto) {
+        Objects.requireNonNull(dto, "SubscriptionCreateDTO must not be null");
+        String prefix = normalizePrefix(dto.getPathPrefix());
         User currentUser = service.getCurrentUser();
-        log.debug("create subscription userId={}, prefix={}", currentUser.getId(), dto.getPathPrefix());
-        Optional<Subscription> existing = repository.findByPathPrefix(dto.getPathPrefix());
+        log.debug("Creating subscription userId={}, prefix={}", currentUser.getId(), prefix);
+        Optional<Subscription> existing = repository.findByPathPrefix(prefix);
+        LocalDate now = LocalDate.now();
         if (existing.isPresent()) {
             Subscription sub = existing.get();
-            log.debug("Existing subscription found id={}, expiration={}", sub.getId(), sub.getExpirationDate());
-            boolean expired = sub.getExpirationDate() == null ||
-                    !sub.getExpirationDate().isAfter(LocalDate.now());
-            if (expired) {
-                log.info("Reusing expired subscription id={} for user={}", sub.getId(), currentUser.getId());
-                sub.setCreationDate(LocalDate.now());
-                sub.setStatus(StatusState.UNPAID);
-                sub.setUser(currentUser);
-                return converter.entityToDto(repository.save(sub));
+            LocalDate expirationDate  = sub.getExpirationDate();
+            log.debug("Existing subscription found id={}, expiration={}", sub.getId(), expirationDate);
+            if (!Objects.equals(sub.getUser().getId(), currentUser.getId())) {
+                if (expirationDate != null && !expirationDate.isAfter(now)) {
+                    log.info("Reusing expired subscription id={} for user={}", sub.getId(), currentUser.getId());
+                    sub.setCreationDate(LocalDate.now());
+                    sub.setStatus(StatusState.UNPAID);
+                    sub.setUser(currentUser);
+                    Subscription saved = repository.save(sub);
+                    log.info("Subscription renewed id={}, prefix={}", saved.getId(), prefix);
+                    return converter.entityToDto(saved);
+                }
+                log.warn("Prefix {} is not available until {}", prefix, expirationDate);
+                throw new PathPrefixAvailabilityException("Subscription is not available until "
+                        + sub.getExpirationDate());
             }
-            log.warn("Prefix {} is not available until {}", dto.getPathPrefix(), sub.getExpirationDate());
-            throw new PathPrefixNotAvailableException(
-                    "This pathPrefix \"" + dto.getPathPrefix() +
-                            "\" is not available until " + sub.getExpirationDate()
-            );
+            log.warn("Subscription belongs to user and expiration date is {}", expirationDate);
+            throw new PathPrefixAvailabilityException("Subscription is yours and expiration date is "
+                    + expirationDate);
         }
         Subscription newSub = converter.dtoToEntity(dto);
         newSub.setCreationDate(LocalDate.now());
         newSub.setUser(currentUser);
         Subscription saved = repository.save(newSub);
-        log.info("Subscription created id={}, prefix={}", saved.getId(), saved.getPathPrefix());
+        log.info("Subscription created id={}, prefix={}", saved.getId(), prefix);
         return converter.entityToDto(saved);
     }
 
@@ -74,6 +81,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Transactional(readOnly = true)
     public List<SubscriptionDTO> findAllByUserId(long userId) {
+        validateId(userId);
         User currentUser = service.getCurrentUser();
         log.debug("findAllByUserId requestedUserId={} by user={}", userId, currentUser.getId());
         if (currentUser.getRole() == RoleType.ROLE_USER &&
@@ -92,6 +100,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Transactional(readOnly = true)
     public SubscriptionDTO findById(long id) {
+        validateId(id);
         User currentUser = service.getCurrentUser();
         log.debug("findById subscriptionId={} by user={}", id, currentUser.getId());
         Subscription sub = repository.findById(id)
@@ -113,6 +122,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @PreAuthorize("hasRole('USER')")
     @Transactional
     public void delete(long id) {
+        validateId(id);
         User currentUser = service.getCurrentUser();
         log.debug("delete subscription id={} by user={}", id, currentUser.getId());
         Subscription sub = repository.findById(id)
@@ -133,6 +143,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @PreAuthorize("hasRole('USER')")
     @Transactional
     public void makePayment(long id) {
+        validateId(id);
         User currentUser = service.getCurrentUser();
         log.debug("makePayment subscriptionId={} by user={}", id, currentUser.getId());
         Subscription sub = repository.findById(id)
@@ -174,5 +185,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         repository.save(subscription);
         log.info("Payment successful for subscription {}, new expiration={}",
                 id, subscription.getExpirationDate());
+    }
+
+    private void validateId(long id) {
+        if (id <= 0) throw new IllegalArgumentException("Id must be positive");
+    }
+
+    private String normalizePrefix(String prefix) {
+        Objects.requireNonNull(prefix, "pathPrefix must not be null");
+        String p = prefix.trim();
+        if (!p.matches("^[A-Za-z0-9_-]{3,50}$")) {
+            throw new IllegalArgumentException("Invalid pathPrefix format");
+        }
+        return p;
     }
 }

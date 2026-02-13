@@ -33,6 +33,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @Transactional(readOnly = true)
     public Long requestsNumberByUser(long userId) {
+        validateId(userId);
         User currentUser = service.getCurrentUser();
         log.debug("requestsNumberByUser requestedUserId={} by user={}", userId, currentUser.getId());
         if (currentUser.getRole() == RoleType.ROLE_USER &&
@@ -50,6 +51,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @Transactional(readOnly = true)
     public long requestsNumberByUrlBinding(long id) {
+        validateId(id);
         User currentUser = service.getCurrentUser();
         log.debug("requestsNumberByUrlBinding id={} by user={}", id, currentUser.getId());
         UrlBinding binding = repository.findById(id)
@@ -77,5 +79,9 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .collect(Collectors.toList());
         log.info("topTenRequests returned {} items", list.size());
         return list;
+    }
+
+    private void validateId(long id) {
+        if (id <= 0) throw new IllegalArgumentException("Id must be positive");
     }
 }

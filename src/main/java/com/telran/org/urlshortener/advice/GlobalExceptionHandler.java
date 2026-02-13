@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
     }
 
     // --- 409 CONFLICT ---
-    @ExceptionHandler({EmailNotUniqueException.class, PathPrefixNotAvailableException.class})
+    @ExceptionHandler({EmailNotUniqueException.class, PathPrefixAvailabilityException.class})
     public ResponseEntity<ErrorResponse> handleConflict(RuntimeException ex, HttpServletRequest req) {
         log.warn("Conflict: {}", ex.getMessage());
         return build(HttpStatus.CONFLICT, ex.getMessage(), req);
