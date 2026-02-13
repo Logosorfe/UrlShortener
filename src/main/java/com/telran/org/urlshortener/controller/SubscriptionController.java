@@ -32,7 +32,7 @@ public class SubscriptionController {
     }
 
     @GetMapping("/by-user/{userId}")
-    public ResponseEntity<List<SubscriptionDTO>> getSubscriptionsByUserId(@PathVariable long userId) {
+    public ResponseEntity<List<SubscriptionDTO>> getSubscriptionsByUserId(@PathVariable @Positive long userId) {
         log.debug("getSubscriptionsByUser userId={}", userId);
         List<SubscriptionDTO> list = service.findAllByUserId(userId);
         log.info("Returned {} subscriptions for userId={}", list.size(), userId);
@@ -56,7 +56,7 @@ public class SubscriptionController {
     }
 
     @PostMapping("/{id}/pay")
-    public ResponseEntity<Void> makePayment(@PathVariable long id) {
+    public ResponseEntity<Void> makePayment(@PathVariable @Positive long id) {
         log.debug("makePayment subscriptionId={}", id);
         service.makePayment(id);
         log.info("Payment process started for subscriptionId={}", id);

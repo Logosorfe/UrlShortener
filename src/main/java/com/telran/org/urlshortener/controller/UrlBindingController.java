@@ -4,6 +4,8 @@ import com.telran.org.urlshortener.dto.UrlBindingCreateDTO;
 import com.telran.org.urlshortener.dto.UrlBindingDTO;
 import com.telran.org.urlshortener.service.UrlBindingService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +27,10 @@ public class UrlBindingController {
 
     @PostMapping
     public ResponseEntity<UrlBindingDTO> createUrlBinding(@Valid @RequestBody UrlBindingCreateDTO dto,
-                                                          @RequestParam(required = false) String pathPrefix) {
+                                                          @RequestParam(required = false)
+                                                          @Pattern(regexp = "^[A-Za-z0-9_-]{3,50}$",
+                                                                  message = "Invalid pathPrefix")
+                                                          String pathPrefix) {
         log.debug("createUrlBinding prefix={}, originalUrlLength={}",
                 pathPrefix, dto.getOriginalUrl() != null ? dto.getOriginalUrl().length() : 0);
         UrlBindingDTO result = service.create(dto, pathPrefix);
@@ -34,7 +39,7 @@ public class UrlBindingController {
     }
 
     @GetMapping("/by-user/{userId}")
-    public ResponseEntity<List<UrlBindingDTO>> getAllUrlBindingsByUserId(@PathVariable long userId) {
+    public ResponseEntity<List<UrlBindingDTO>> getAllUrlBindingsByUserId(@PathVariable @Positive long userId) {
         log.debug("getAllUrlBindingsByUserId userId={}", userId);
         List<UrlBindingDTO> list = service.findAllByUserId(userId);
         log.info("Returned {} url bindings for userId={}", list.size(), userId);
@@ -42,7 +47,9 @@ public class UrlBindingController {
     }
 
     @GetMapping
-    public ResponseEntity<UrlBindingDTO> getUrlBindingByUid(@RequestParam String uId) {
+    public ResponseEntity<UrlBindingDTO> getUrlBindingByUid(@RequestParam @NotBlank @Pattern
+                                                                        (regexp = "^/?[A-Za-z0-9_\\-]+(/[A-Za-z0-9_\\-]+)?$",
+                                                                        message = "Invalid uId format") String uId) {
         log.debug("getUrlBindingById uId={}", uId);
         UrlBindingDTO dto = service.find(uId);
         log.info("Found UrlBinding id={}, uId={}", dto.getId(), uId);

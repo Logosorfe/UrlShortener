@@ -84,7 +84,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public JwtAuthenticationResponse login(@RequestBody SignInRequest requestBody) {
+    public JwtAuthenticationResponse login(@Valid @RequestBody SignInRequest requestBody) {
         log.debug("login attempt login={}", masking.maskLogin(requestBody.getLogin()));
         JwtAuthenticationResponse resp = authentication.authenticate(requestBody);
         log.info("login succeeded login={}", masking.maskLogin(requestBody.getLogin()));

@@ -21,7 +21,7 @@ public class StatisticsController {
     private final StatisticsService service;
 
     @GetMapping("/by-user")
-    public ResponseEntity<Long> getRequestsCountByUserId(@RequestParam @Positive long userId) {
+    public ResponseEntity<Long> getRequestsCountByUserId(@RequestParam(required = true) @Positive long userId) {
         log.debug("getRequestsCountByUserId userId={}", userId);
         Long count = service.requestsNumberByUser(userId);
         log.info("Requests count for userId={} is {}", userId, count);
