@@ -1,10 +1,14 @@
 package com.telran.org.urlshortener.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,6 +20,7 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
 
@@ -31,14 +36,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         String jwt = header.substring("Bearer ".length());
-        String userName = jwtService.extractUserName(jwt);
-        if (userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails user = userDetailsService.loadUserByUsername(userName);
-            if (jwtService.isTokenValid(jwt, user)){
-                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(user,
-                        null, user.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+        try {
+            String userName = jwtService.extractUserName(jwt);
+            if (userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails user = userDetailsService.loadUserByUsername(userName);
+                if (jwtService.isTokenValid(jwt, user)){
+                    UsernamePasswordAuthenticationToken authenticationToken =
+                            new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                }
             }
+        } catch (ExpiredJwtException e) {
+            log.debug("JWT token is expired: {}", e.getMessage());
+        } catch (MalformedJwtException e) {
+            log.debug("Malformed JWT token: {}", e.getMessage());
+        } catch (SignatureException e) {
+            log.debug("Invalid JWT signature: {}", e.getMessage());
+        } catch (Exception e) {
+            log.debug("Failed to process JWT token: {}", e.getMessage());
         }
         filterChain.doFilter(request, response);
     }

@@ -9,6 +9,7 @@ import com.telran.org.urlshortener.exception.PathPrefixAvailabilityException;
 import com.telran.org.urlshortener.mapper.Converter;
 import com.telran.org.urlshortener.model.RoleType;
 import com.telran.org.urlshortener.repository.UrlBindingJpaRepository;
+import com.telran.org.urlshortener.utility.UrlValidationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,6 +37,8 @@ public class UrlBindingServiceImpl implements UrlBindingService {
 
     private final UserService service;
 
+    private final UrlValidationService urlValidationService;
+
     private final Converter<UrlBinding, UrlBindingCreateDTO, UrlBindingDTO> converter;
 
     @Override
@@ -43,8 +46,8 @@ public class UrlBindingServiceImpl implements UrlBindingService {
     @Transactional
     public UrlBindingDTO create(UrlBindingCreateDTO dto, String pathPrefix) {
         Objects.requireNonNull(dto, "UrlBindingCreateDTO must not be null");
-        String originalUrl = normalizeUrl(dto.getOriginalUrl());
-        validateUrl(originalUrl);
+        String originalUrl = urlValidationService.normalizeUrl(dto.getOriginalUrl());
+        urlValidationService.validateUrl(originalUrl);
         User currentUser = service.getCurrentUser();
         log.debug("create UrlBinding userId={}, prefix={}, url={}", currentUser.getId(), pathPrefix,
                 maskUrl(originalUrl));
@@ -59,7 +62,7 @@ public class UrlBindingServiceImpl implements UrlBindingService {
         if (normalizedPrefix == null) {
             String uId = "/" + pathSuffix;
             log.debug("Creating UrlBinding without prefix, suffix={}", pathSuffix);
-            Optional<UrlBinding> existing = repository.findByUId(uId);
+            Optional<UrlBinding> existing = repository.findByUid(uId);
             if (existing.isPresent()) {
                 UrlBinding reused = existing.get();
                 reused.setUser(currentUser);
@@ -68,10 +71,10 @@ public class UrlBindingServiceImpl implements UrlBindingService {
                 return converter.entityToDto(repository.save(reused));
             }
             UrlBinding newBinding = converter.dtoToEntity(dto);
-            newBinding.setUId(uId);
+            newBinding.setUid(uId);
             newBinding.setUser(currentUser);
             UrlBinding saved = repository.save(newBinding);
-            log.info("UrlBinding created id={}, uId={}", saved.getId(), saved.getUId());
+            log.info("UrlBinding created id={}, uId={}", saved.getId(), saved.getUid());
             return converter.entityToDto(saved);
         }
         log.debug("Checking subscription for prefix={} userId={}", normalizedPrefix, currentUser.getId());
@@ -84,7 +87,7 @@ public class UrlBindingServiceImpl implements UrlBindingService {
         }
         log.debug("Active subscription found for prefix={}", normalizedPrefix);
         String fullUId = "/" + normalizedPrefix + "/" + pathSuffix;
-        Optional<UrlBinding> existing = repository.findByUId(fullUId);
+        Optional<UrlBinding> existing = repository.findByUid(fullUId);
         if (existing.isPresent()) {
             log.info("Existing UrlBinding reused id={} for user={}", existing.get().getId(), currentUser.getId());
             UrlBinding reused = existing.get();
@@ -94,10 +97,10 @@ public class UrlBindingServiceImpl implements UrlBindingService {
             return converter.entityToDto(repository.save(reused));
         }
         UrlBinding newBinding = converter.dtoToEntity(dto);
-        newBinding.setUId(fullUId);
+        newBinding.setUid(fullUId);
         newBinding.setUser(currentUser);
         UrlBinding saved = repository.save(newBinding);
-        log.info("UrlBinding created id={}, uId={}", saved.getId(), saved.getUId());
+        log.info("UrlBinding created id={}, uId={}", saved.getId(), saved.getUid());
         return converter.entityToDto(saved);
     }
 
@@ -123,10 +126,10 @@ public class UrlBindingServiceImpl implements UrlBindingService {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Transactional(readOnly = true)
     public UrlBindingDTO find(String uId) {
-        String normalized = normalizeUId(uId);
+        String normalized = urlValidationService.normalizeUId(uId);
         User currentUser = service.getCurrentUser();
         log.debug("find UrlBinding uId={} by user={}", normalized, currentUser.getId());
-        UrlBinding binding = repository.findByUId(normalized)
+        UrlBinding binding = repository.findByUid(normalized)
                 .orElseThrow(() -> {
                     log.warn("UrlBinding not found uId={}", normalized);
                     return new IdNotFoundException("Unique id " + normalized + " is not found.");
@@ -185,25 +188,39 @@ public class UrlBindingServiceImpl implements UrlBindingService {
         log.info("UrlBinding deleted id={}", id);
     }
 
+    @Override
+    @Transactional
+    public URI resolveRedirectUri(String rawPath) throws IdNotFoundException, AccessDeniedException, IllegalArgumentException {
+        String normalized = rawPath.startsWith("/") ? rawPath : "/" + rawPath;
+        log.debug("Resolve redirect for rawPath={}, normalized={}", rawPath, normalized);
+        List<String> protectedPrefixes = List.of("/url_bindings", "/users", "/subscriptions", "/statistics");
+        for (String p : protectedPrefixes) {
+            if (normalized.equals(p) || normalized.startsWith(p + "/")) {
+                log.debug("Path {} matches protected prefix {}, skipping redirect", normalized, p);
+                throw new IllegalArgumentException("Protected path");
+            }
+        }
+        if (!urlValidationService.isValidUId(normalized)) {
+            log.warn("Invalid uId format: {}", normalized);
+            throw new IllegalArgumentException("Invalid uId format");
+        }
+        UrlBindingDTO dto = find(normalized);
+        String target = dto.getOriginalUrl();
+        if (!urlValidationService.isValidRedirectUrl(target)) {
+            log.warn("Blocked redirect to unsafe URL: {}", target);
+            throw new AccessDeniedException("Unsafe redirect URL");
+        }
+        int updatedCount = repository.incrementCountById(dto.getId());
+        if (updatedCount == 0) {
+            log.warn("Failed to increment count: UrlBinding not found. id={}", dto.getId());
+            throw new IdNotFoundException("Url binding with id " + dto.getId() + " is not found.");
+        }
+        log.info("Resolved redirect {} -> {}", normalized, target);
+        return URI.create(target);
+    }
+
     private void validateId(long id) {
         if (id <= 0) throw new IllegalArgumentException("Id must be positive");
-    }
-
-    private String normalizeUrl(String url) {
-        return Objects.requireNonNull(url, "originalUrl must not be null").trim();
-    }
-
-    private void validateUrl(String url) {
-        try {
-            URI uri = URI.create(url);
-            String scheme = uri.getScheme();
-            if (scheme == null || !(scheme.equalsIgnoreCase("http")
-                    || scheme.equalsIgnoreCase("https"))) {
-                throw new IllegalArgumentException("URL must use http or https");
-            }
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid URL format");
-        }
     }
 
     private String normalizePrefix(String prefix) {
@@ -215,7 +232,7 @@ public class UrlBindingServiceImpl implements UrlBindingService {
         return p;
     }
 
-    private void validateUserPrefix(User user, String prefix) throws PathPrefixAvailabilityException {
+    private void validateUserPrefix(User user, String prefix) {
         boolean hasActive = user.getSubscriptions().stream()
                 .anyMatch(s -> prefix.equals(s.getPathPrefix()) && s.getExpirationDate() != null
                         && s.getExpirationDate().isAfter(LocalDate.now()));
@@ -223,14 +240,6 @@ public class UrlBindingServiceImpl implements UrlBindingService {
             throw new PathPrefixAvailabilityException("Subscription with prefix \"" + prefix
                     + "\" is not active or does not belong to user.");
         }
-    }
-
-    private String normalizeUId(String uId) {
-        Objects.requireNonNull(uId, "uId must not be null");
-        String trimmed = uId.trim();
-        if (trimmed.isEmpty()) throw new IllegalArgumentException("uId must not be blank");
-        if (!trimmed.startsWith("/")) trimmed = "/" + trimmed;
-        return trimmed;
     }
 
     private String generateSuffix(String originalUrl) throws NoSuchAlgorithmException {

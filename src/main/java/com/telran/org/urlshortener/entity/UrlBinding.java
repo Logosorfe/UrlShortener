@@ -20,9 +20,9 @@ public class UrlBinding {
 
     private String originalUrl;
 
-    private String uId;
+    private String uid;
 
-    private Long count = 0L;
+    private long count = 0L;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

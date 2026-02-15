@@ -1,7 +1,8 @@
 package com.telran.org.urlshortener.security;
 
-import com.telran.org.urlshortener.entity.User;
+import com.telran.org.urlshortener.repository.UserJpaRepository;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,17 +20,18 @@ import java.util.function.Function;
 public class JwtService {
     private final SecretKey secretSigningKey;
 
+    private final UserJpaRepository repository;
+
     @Value("${app.jwt.expiration-ms}")
     private long expirationMs;
 
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        if (userDetails instanceof User) {
-            User userEntity = (User) userDetails;
-            claims.put("userId", userEntity.getId());
-            claims.put("login", userEntity.getEmail());
-            claims.put("role", userEntity.getRole().name());
-        }
+        repository.findByEmail(userDetails.getUsername()).ifPresent(user -> {
+            claims.put("userId", user.getId());
+            claims.put("login", user.getEmail());
+            claims.put("role", user.getRole().name());
+        });
         return generateToken(claims, userDetails);
     }
 
@@ -63,11 +65,15 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration).before(new Date());
     }
 
-    private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(secretSigningKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+    public Claims extractAllClaims(String token) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(secretSigningKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            return e.getClaims();
+        }
     }
 }

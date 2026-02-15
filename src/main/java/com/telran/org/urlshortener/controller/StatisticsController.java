@@ -17,7 +17,6 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class StatisticsController {
-
     private final StatisticsService service;
 
     @GetMapping("/by-user")

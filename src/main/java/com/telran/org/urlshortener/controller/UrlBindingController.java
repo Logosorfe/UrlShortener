@@ -65,7 +65,7 @@ public class UrlBindingController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> removeUrlBindingById(@PathVariable long id) {
+    public ResponseEntity<Void> removeUrlBindingById(@PathVariable @Positive long id) {
         log.debug("removeUrlBindingById id={}", id);
         service.delete(id);
         log.info("UrlBinding deleted id={}", id);
