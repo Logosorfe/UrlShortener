@@ -2,7 +2,7 @@ package com.telran.org.urlshortener.service;
 
 import com.telran.org.urlshortener.dto.SubscriptionCreateDTO;
 import com.telran.org.urlshortener.dto.SubscriptionDTO;
-import com.telran.org.urlshortener.entity.Subscription;
+//import com.telran.org.urlshortener.entity.Subscription;
 
 import java.util.List;
 

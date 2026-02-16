@@ -1,6 +1,5 @@
 package com.telran.org.urlshortener.controller;
 
-import com.telran.org.urlshortener.dto.SubscriptionDTO;
 import com.telran.org.urlshortener.dto.UrlBindingCreateDTO;
 import com.telran.org.urlshortener.dto.UrlBindingDTO;
 import com.telran.org.urlshortener.service.UrlBindingService;

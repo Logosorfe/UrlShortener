@@ -3,12 +3,9 @@ package com.telran.org.urlshortener.utility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.net.URI;
-
 import static org.assertj.core.api.Assertions.*;
 
 class UrlValidationServiceTest {
-
     private UrlValidationService service;
 
     @BeforeEach
