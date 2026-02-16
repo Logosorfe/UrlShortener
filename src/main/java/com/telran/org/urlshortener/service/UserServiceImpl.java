@@ -61,7 +61,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Transactional(readOnly = true)
     public List<UserDTO> findAll() {
         log.debug("findAll users");
@@ -69,7 +69,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Transactional(readOnly = true)
     public UserDTO findById(long id) {
         validateId(id);
@@ -86,7 +86,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Transactional
     public UserDTO update(long id, RoleType newRole) {
         validateId(id);
@@ -104,7 +104,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     @Transactional
     public void delete(long id) {
         validateId(id);
@@ -115,7 +115,7 @@ public class UserServiceImpl implements UserService {
                     log.warn("User delete failed — not found id={}", id);
                     return new UserNotFoundException("User with id " + id + " is not found.");
                 });
-        if (current.getRole() == RoleType.ROLE_USER && !Objects.equals(current.getId(), id)) {
+        if (current.getRole() == RoleType.USER && !Objects.equals(current.getId(), id)) {
             log.warn("User {} attempted to delete another user {}", current.getId(), id);
             throw new AccessDeniedException("You do not have permission to delete another user.");
         }
@@ -124,7 +124,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     @Transactional(readOnly = true)
     public UserDTO findByEmail(String email) {
         String normalized = normalizeEmail(email);
@@ -135,7 +135,7 @@ public class UserServiceImpl implements UserService {
                     log.warn("User not found by email={}", normalized);
                     return new UserNotFoundException("User with email " + normalized + " is not found.");
                 });
-        if (current.getRole() == RoleType.ROLE_USER && !Objects.equals(current.getEmail(), normalized)) {
+        if (current.getRole() == RoleType.USER && !Objects.equals(current.getEmail(), normalized)) {
             log.warn("User {} attempted to access another user's data {}", current.getId(), normalized);
             throw new AccessDeniedException("You do not have permission to view this user.");
         }

@@ -45,11 +45,11 @@ class UserServiceImplTest {
         admin = new User();
         admin.setId(100L);
         admin.setEmail("admin@test.com");
-        admin.setRole(RoleType.ROLE_ADMIN);
+        admin.setRole(RoleType.ADMIN);
         user = new User();
         user.setId(1L);
         user.setEmail("user@test.com");
-        user.setRole(RoleType.ROLE_USER);
+        user.setRole(RoleType.USER);
     }
 
     // -------------------------------------------------------
@@ -67,7 +67,7 @@ class UserServiceImplTest {
         when(encoder.encode("pass")).thenReturn("ENCODED");
         when(repository.save(entity)).thenReturn(saved);
         when(converter.entityToDto(saved))
-                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.ROLE_USER));
+                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.USER));
         UserDTO result = service.create(dto);
         assertEquals(1L, result.getId());
     }
@@ -93,7 +93,7 @@ class UserServiceImplTest {
     void findAll_adminSuccess() {
         when(repository.findAll()).thenReturn(List.of(user));
         when(converter.entityToDto(user))
-                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.ROLE_USER));
+                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.USER));
         mockAdminAuth();
         List<UserDTO> result = service.findAll();
         assertEquals(1, result.size());
@@ -108,7 +108,7 @@ class UserServiceImplTest {
     void findById_adminSuccess() {
         when(repository.findById(1L)).thenReturn(Optional.of(user));
         when(converter.entityToDto(user))
-                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.ROLE_USER));
+                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.USER));
         mockAdminAuth();
         UserDTO dto = service.findById(1L);
         assertEquals(1L, dto.getId());
@@ -130,17 +130,17 @@ class UserServiceImplTest {
         when(repository.findById(1L)).thenReturn(Optional.of(user));
         when(repository.save(user)).thenReturn(user);
         when(converter.entityToDto(user))
-                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.ROLE_ADMIN));
+                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.ADMIN));
         mockAdminAuth();
-        UserDTO dto = service.update(1L, RoleType.ROLE_ADMIN);
-        assertEquals(RoleType.ROLE_ADMIN, dto.getRole());
+        UserDTO dto = service.update(1L, RoleType.ADMIN);
+        assertEquals(RoleType.ADMIN, dto.getRole());
     }
 
     @Test
     void update_notFound_throws() {
         when(repository.findById(1L)).thenReturn(Optional.empty());
         mockAdminAuth();
-        assertThrows(UserNotFoundException.class, () -> service.update(1L, RoleType.ROLE_ADMIN));
+        assertThrows(UserNotFoundException.class, () -> service.update(1L, RoleType.ADMIN));
     }
 
     // -------------------------------------------------------
@@ -160,7 +160,7 @@ class UserServiceImplTest {
         User other = new User();
         other.setId(2L);
         other.setEmail("other@test.com");
-        other.setRole(RoleType.ROLE_USER);
+        other.setRole(RoleType.USER);
         when(repository.findById(2L)).thenReturn(Optional.of(other));
         mockUserAuth();
         assertThrows(AccessDeniedException.class, () -> service.delete(2L));
@@ -191,7 +191,7 @@ class UserServiceImplTest {
     void findByEmail_userOwnEmail_success() {
         when(repository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(converter.entityToDto(user))
-                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.ROLE_USER));
+                .thenReturn(new UserDTO(1L, "user@test.com", RoleType.USER));
         mockUserAuth();
         UserDTO dto = service.findByEmail("user@test.com");
         assertEquals(1L, dto.getId());
@@ -202,7 +202,7 @@ class UserServiceImplTest {
         User other = new User();
         other.setId(2L);
         other.setEmail("other@test.com");
-        other.setRole(RoleType.ROLE_USER);
+        other.setRole(RoleType.USER);
         when(repository.findByEmail("other@test.com")).thenReturn(Optional.of(other));
         mockUserAuth();
         assertThrows(AccessDeniedException.class, () -> service.findByEmail("other@test.com"));
@@ -213,10 +213,10 @@ class UserServiceImplTest {
         User other = new User();
         other.setId(2L);
         other.setEmail("other@test.com");
-        other.setRole(RoleType.ROLE_USER);
+        other.setRole(RoleType.USER);
         when(repository.findByEmail("other@test.com")).thenReturn(Optional.of(other));
         when(converter.entityToDto(other))
-                .thenReturn(new UserDTO(2L, "other@test.com", RoleType.ROLE_USER));
+                .thenReturn(new UserDTO(2L, "other@test.com", RoleType.USER));
         mockAdminAuth();
         UserDTO dto = service.findByEmail("other@test.com");
         assertEquals(2L, dto.getId());

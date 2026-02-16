@@ -72,7 +72,7 @@ public interface SubscriptionService {
 
     /**
      * Initiates the payment process for a subscription.
-     * Payment is performed asynchronously. If successful, the subscription
+     * Payment is performed not asynchronously at the moment, but by ADMIN. If successful, the subscription
      * expiration date is extended; otherwise, it remains unpaid.
      *
      * @param id the subscription ID
@@ -84,14 +84,14 @@ public interface SubscriptionService {
      */
     void makePayment(long id);
 
-    /**
-     * Performs the asynchronous payment processing logic.
-     * This method is intended to be executed in a background thread.
-     * It waits for an external payment confirmation and updates the subscription
-     * status and expiration date accordingly.
-     *
-     * @param subscription the subscription to process
-     * @throws NullPointerException if subscription is null
-     */
-    void startAsyncPayment(Subscription subscription);
+//    /**
+//     * Performs the asynchronous payment processing logic.
+//     * This method is intended to be executed in a background thread.
+//     * It waits for an external payment confirmation and updates the subscription
+//     * status and expiration date accordingly.
+//     *
+//     * @param subscription the subscription to process
+//     * @throws NullPointerException if subscription is null
+//     */
+//    void startAsyncPayment(Subscription subscription);
 }

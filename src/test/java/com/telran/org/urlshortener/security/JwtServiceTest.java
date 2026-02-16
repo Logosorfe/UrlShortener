@@ -56,7 +56,7 @@ class JwtServiceTest {
         user.setId(10L);
         user.setEmail("test@mail.com");
         user.setPassword("pass");
-        user.setRole(RoleType.ROLE_USER);
+        user.setRole(RoleType.USER);
         return user;
     }
 
@@ -76,7 +76,7 @@ class JwtServiceTest {
         assertEquals("test@mail.com", claims.getSubject());
         assertEquals(10, claims.get("userId"));
         assertEquals("test@mail.com", claims.get("login"));
-        assertEquals("ROLE_USER", claims.get("role"));
+        assertEquals("USER", claims.get("role"));
     }
 
     @Test

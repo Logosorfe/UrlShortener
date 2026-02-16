@@ -2,6 +2,7 @@ package com.telran.org.urlshortener.controller;
 
 import com.telran.org.urlshortener.exception.IdNotFoundException;
 import com.telran.org.urlshortener.service.UrlBindingService;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,14 +14,24 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 
+@Hidden
 @RestController
 @RequiredArgsConstructor
 @Slf4j
 public class RedirectController {
     private final UrlBindingService service;
 
-    @GetMapping("/**")
-    public ResponseEntity<Void> redirect(HttpServletRequest request) {
+    @GetMapping("/{shortUrl:[a-zA-Z0-9_-]+}")
+    public ResponseEntity<Void> redirectSingle(HttpServletRequest request) {
+        return handleRedirect(request);
+    }
+
+    @GetMapping("/{prefix:[a-zA-Z0-9_-]+}/{suffix:[a-zA-Z0-9_-]+}")
+    public ResponseEntity<Void> redirectWithPrefix(HttpServletRequest request) {
+        return handleRedirect(request);
+    }
+
+    private ResponseEntity<Void> handleRedirect(HttpServletRequest request) {
         String requestUri = request.getRequestURI();
         String contextPath = request.getContextPath();
         String path = (contextPath != null && !contextPath.isEmpty())

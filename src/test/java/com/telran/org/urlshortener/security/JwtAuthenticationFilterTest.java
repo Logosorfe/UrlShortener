@@ -41,7 +41,7 @@ class JwtAuthenticationFilterTest {
         testUser.setId(10L);
         testUser.setEmail("test@mail.com");
         testUser.setPassword("$2a$10$abcdefghijklmnopqrstuv");
-        testUser.setRole(RoleType.ROLE_ADMIN);
+        testUser.setRole(RoleType.ADMIN);
 
         when(repository.findByEmail("test@mail.com")).thenReturn(Optional.of(testUser));
         when(repository.findById(10L)).thenReturn(Optional.of(testUser));

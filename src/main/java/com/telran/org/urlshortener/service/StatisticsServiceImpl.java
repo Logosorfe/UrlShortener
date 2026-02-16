@@ -30,13 +30,13 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final Converter<UrlBinding, UrlBindingCreateDTO, UrlBindingDTO> converter;
 
     @Override
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
     @Transactional(readOnly = true)
     public Long requestsNumberByUser(long userId) {
         validateId(userId);
         User currentUser = service.getCurrentUser();
         log.debug("requestsNumberByUser requestedUserId={} by user={}", userId, currentUser.getId());
-        if (currentUser.getRole() == RoleType.ROLE_USER &&
+        if (currentUser.getRole() == RoleType.USER &&
                 !Objects.equals(currentUser.getId(), userId)) {
             log.warn("User {} attempted to access statistics of user {}", currentUser.getId(), userId);
             throw new AccessDeniedException("You do not have permission to access this resource");
@@ -48,7 +48,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
     @Transactional(readOnly = true)
     public long requestsNumberByUrlBinding(long id) {
         validateId(id);
@@ -59,7 +59,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                     log.warn("UrlBinding not found id={}", id);
                     return new IdNotFoundException("Url binding is not found");
                 });
-        if (currentUser.getRole() == RoleType.ROLE_USER &&
+        if (currentUser.getRole() == RoleType.USER &&
                 !Objects.equals(binding.getUser().getId(), currentUser.getId())) {
             log.warn("User {} attempted to access UrlBinding {} belonging to {}",
                     currentUser.getId(), id, binding.getUser().getId());
@@ -70,7 +70,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Transactional(readOnly = true)
     public List<UrlBindingDTO> topTenRequests() {
         log.debug("topTenRequests called");

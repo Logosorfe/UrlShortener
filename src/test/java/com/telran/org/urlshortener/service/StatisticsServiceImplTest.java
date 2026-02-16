@@ -44,11 +44,11 @@ class StatisticsServiceImplTest {
         user = new User();
         user.setId(1L);
         user.setEmail("user@test.com");
-        user.setRole(RoleType.ROLE_USER);
+        user.setRole(RoleType.USER);
         admin = new User();
         admin.setId(2L);
         admin.setEmail("admin@test.com");
-        admin.setRole(RoleType.ROLE_ADMIN);
+        admin.setRole(RoleType.ADMIN);
         userBinding = new UrlBinding();
         userBinding.setId(10L);
         userBinding.setUser(user);

@@ -46,7 +46,7 @@ class UrlBindingServiceImplTest {
         MockitoAnnotations.openMocks(this);
         user = new User();
         user.setId(1L);
-        user.setRole(RoleType.ROLE_USER);
+        user.setRole(RoleType.USER);
         user.setSubscriptions(new ArrayList<>());
     }
 

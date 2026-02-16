@@ -42,7 +42,7 @@ public class UrlBindingServiceImpl implements UrlBindingService {
     private final Converter<UrlBinding, UrlBindingCreateDTO, UrlBindingDTO> converter;
 
     @Override
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAuthority('USER')")
     @Transactional
     public UrlBindingDTO create(UrlBindingCreateDTO dto, String pathPrefix) {
         Objects.requireNonNull(dto, "UrlBindingCreateDTO must not be null");
@@ -105,13 +105,13 @@ public class UrlBindingServiceImpl implements UrlBindingService {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     @Transactional(readOnly = true)
     public List<UrlBindingDTO> findAllByUserId(long userId) {
         validateId(userId);
         User currentUser = service.getCurrentUser();
         log.debug("findAllByUserId requestedUserId={} by user={}", userId, currentUser.getId());
-        if (currentUser.getRole() == RoleType.ROLE_USER && !Objects.equals(currentUser.getId(), userId)) {
+        if (currentUser.getRole() == RoleType.USER && !Objects.equals(currentUser.getId(), userId)) {
             log.warn("User {} attempted to access bindings of user {}", currentUser.getId(), userId);
             throw new AccessDeniedException("You do not have permission to access this list.");
         }
@@ -123,7 +123,7 @@ public class UrlBindingServiceImpl implements UrlBindingService {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     @Transactional(readOnly = true)
     public UrlBindingDTO find(String uId) {
         String normalized = urlValidationService.normalizeUId(uId);
@@ -134,7 +134,7 @@ public class UrlBindingServiceImpl implements UrlBindingService {
                     log.warn("UrlBinding not found uId={}", normalized);
                     return new IdNotFoundException("Unique id " + normalized + " is not found.");
                 });
-        if (currentUser.getRole() == RoleType.ROLE_USER &&
+        if (currentUser.getRole() == RoleType.USER &&
                 !Objects.equals(binding.getUser().getId(), currentUser.getId())) {
             log.warn("User {} attempted to access UrlBinding {} belonging to {}", currentUser.getId(), normalized,
                     binding.getUser().getId());
@@ -145,7 +145,7 @@ public class UrlBindingServiceImpl implements UrlBindingService {
     }
 
     @Override
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAuthority('USER')")
     @Transactional
     public UrlBindingDTO reset(long id) {
         validateId(id);
@@ -168,7 +168,7 @@ public class UrlBindingServiceImpl implements UrlBindingService {
     }
 
     @Override
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAuthority('USER')")
     @Transactional
     public void delete(long id) {
         validateId(id);
@@ -204,7 +204,14 @@ public class UrlBindingServiceImpl implements UrlBindingService {
             log.warn("Invalid uId format: {}", normalized);
             throw new IllegalArgumentException("Invalid uId format");
         }
-        UrlBindingDTO dto = find(normalized);
+        String normalizedForSearch = urlValidationService.normalizeUId(normalized); // возможно, уже нормализовано
+        log.debug("findForRedirect uId={}", normalizedForSearch);
+        UrlBinding binding = repository.findByUid(normalizedForSearch)
+                .orElseThrow(() -> {
+                    log.warn("UrlBinding not found uId={}", normalizedForSearch);
+                    return new IdNotFoundException("Unique id " + normalizedForSearch + " is not found.");
+                });
+        UrlBindingDTO dto = converter.entityToDto(binding);
         String target = dto.getOriginalUrl();
         if (!urlValidationService.isValidRedirectUrl(target)) {
             log.warn("Blocked redirect to unsafe URL: {}", target);
